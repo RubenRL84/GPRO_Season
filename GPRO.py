@@ -6,6 +6,41 @@ import openpyxl
 from urllib.parse import urlparse, parse_qs
 from lxml import html
 
+import tkinter as tk
+
+class LoginForm:
+    def __init__(self, master):
+        self.master = master
+        master.title("Login Form")
+
+        self.label_username = tk.Label(master, text="Username")
+        self.label_username.pack()
+
+        self.entry_username = tk.Entry(master)
+        self.entry_username.pack()
+
+        self.label_password = tk.Label(master, text="Password")
+        self.label_password.pack()
+
+        self.entry_password = tk.Entry(master, show="*")
+        self.entry_password.pack()
+
+        self.submit_button = tk.Button(master, text="Submit", command=self.submit)
+        self.submit_button.pack()
+
+    def submit(self):
+        username = self.entry_username.get()
+        password = self.entry_password.get()
+
+        print(f"Username: {username}")
+        print(f"Password: {password}")
+
+root = tk.Tk()
+login_form = LoginForm(root)
+root.mainloop()
+
+
+
 # set the login credentials
 username = 'xxx'
 password = 'xxx'
