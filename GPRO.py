@@ -8,6 +8,7 @@ from lxml import html
 import os
 import ssl
 import tkinter as tk
+from tkinter import filedialog
 
 
 # Disable SSL certificate verification globally
@@ -33,17 +34,22 @@ class LoginForm:
         self.submit_button = tk.Button(master, text="Submit", command=self.submit)
         self.submit_button.pack()
         
+        self.browse_button = tk.Button(master, text="Browse", command=self.browse_file)
+        self.browse_button.pack()
+        
         # Define instance variables to store username and password
         self.username = None
         self.password = None
+        self.file_path = None
 
     def submit(self):
         self.username = self.entry_username.get()
         self.password = self.entry_password.get()
-
-        #print(f"Username: {username}")
-        #print(f"Password: {password}")
         self.master.destroy()
+        
+    def browse_file(self):
+        self.file_path = filedialog.askopenfilename()
+        print(f"Selected file: {self.file_path}")
 
 # Done
 def check_login(username:str, password:str) -> bool:
@@ -128,7 +134,7 @@ def write_to_excel(data, gp_list, actual_gp:str , worksheet, start_row, end_row,
             break
 
 # Done
-def fill_season_calendar():
+def fill_season_calendar(excel_path):
     # send a GET request to the calendar page
     response = requests.get("https://www.gpro.net/gb/Calendar.asp")
 
@@ -162,13 +168,13 @@ def fill_season_calendar():
 
     # Print the GP name if it was found, or a message if it wasn't found
     
-    workbook, worksheet = open_workbook_worksheet('me_s80.xlsx', '1 Season')
+    workbook, worksheet = open_workbook_worksheet(excel_path, '1 Season')
     
     new_gp_dict = {v: k for k, v in gp_dict.items()}
     
     write_to_excel(new_gp_dict, 2, gp_name, worksheet, 6, 24, True)
     
-    save_workbook(workbook, 'me_s80.xlsx')
+    save_workbook(workbook, excel_path)
     
     if gp_name:
         return gp_list, gp_name
@@ -177,7 +183,7 @@ def fill_season_calendar():
         sys.exit()
     
 # Done
-def fill_driver_profile(br, gp_list , actual_gp):
+def fill_driver_profile(br, gp_list , actual_gp, excel_path):
     
     # navigate to the login page
     br.open('https://www.gpro.net/gb/DriverContract.asp')
@@ -206,21 +212,21 @@ def fill_driver_profile(br, gp_list , actual_gp):
         'win_bonus': tree.xpath("normalize-space(//div[contains(@data-step, '1')]//table[1]//tr[2]//td[1]//text())").replace('.', ' ')
     }
     
-    workbook, worksheet = open_workbook_worksheet('me_s80.xlsx', '2 Stuff Data')
+    workbook, worksheet = open_workbook_worksheet(excel_path, '2 Stuff Data')
     
     write_to_excel(driver_data, gp_list, actual_gp, worksheet, 5, 17, False)
     
     write_to_excel(driver_salary, gp_list, actual_gp, worksheet, 18, 22, False)
     
-    workbook, worksheet = open_workbook_worksheet('me_s80.xlsx', '8 Strategy Planner')
+    workbook, worksheet = open_workbook_worksheet(excel_path, '8 Strategy Planner')
     
     write_to_excel(driver_data, 15, actual_gp, worksheet, 2, 14, True)
     
     # Load the workbook
-    save_workbook(workbook, 'me_s80.xlsx')
+    save_workbook(workbook, excel_path)
 
 # Done
-def fill_staff_facilities(br, gp_list, actual_gp):
+def fill_staff_facilities(br, gp_list, actual_gp, excel_path):
     # navigate to the login page
     br.open('https://www.gpro.net/gb/StaffAndFacilities.asp')
     
@@ -246,17 +252,17 @@ def fill_staff_facilities(br, gp_list, actual_gp):
         'commercial': extract_row_data(tree, 'table', 'data-step', '6', '7'),
     }
     
-    workbook, worksheet = open_workbook_worksheet('me_s80.xlsx', '2 Stuff Data')
+    workbook, worksheet = open_workbook_worksheet(excel_path, '2 Stuff Data')
     
     write_to_excel(staff_overal, gp_list, actual_gp, worksheet, 40, 46, False)
     
     write_to_excel(facilities, gp_list, actual_gp, worksheet, 48, 55, False)
     
     # Load the workbook
-    save_workbook(workbook, 'me_s80.xlsx')
+    save_workbook(workbook, excel_path)
 
 #Done
-def fill_car_level(br, gp_list, actual_gp):
+def fill_car_level(br, gp_list, actual_gp, excel_path):
     
     br.open('https://www.gpro.net/gb/UpdateCar.asp')
     tree = html.fromstring(br.response().get_data())
@@ -289,25 +295,25 @@ def fill_car_level(br, gp_list, actual_gp):
         'electronics': int(tree.xpath("normalize-space(//td[contains(@id, 'newWearEle')]/text())").strip('%')) / 100
     }
     
-    workbook, worksheet = open_workbook_worksheet('me_s80.xlsx', '3 Part Data')
+    workbook, worksheet = open_workbook_worksheet(excel_path, '3 Part Data')
     
     write_to_excel(car_level, gp_list, actual_gp, worksheet, 5, 16, False)
     
     write_to_excel(car_wear, gp_list, actual_gp, worksheet, 57, 68, False)
     
-    workbook, worksheet = open_workbook_worksheet('me_s80.xlsx', '8 Strategy Planner')
+    workbook, worksheet = open_workbook_worksheet(excel_path, '8 Strategy Planner')
     
     write_to_excel(car_level, 9, actual_gp, worksheet, 3, 14, True)
     
     write_to_excel(car_wear, 10, actual_gp, worksheet, 3, 14, True)
     
     # Load the workbook
-    save_workbook(workbook, 'me_s80.xlsx')
+    save_workbook(workbook, excel_path)
     
     pass
 
 #Done
-def fill_gp_info(br, actual_gp):
+def fill_gp_info(br, actual_gp, excel_path):
     
     br.open('https://www.gpro.net/gb/RaceSetup.asp')
     #print(br.response().get_data())
@@ -351,7 +357,7 @@ def fill_gp_info(br, actual_gp):
         'temperature': rTemp
     }
     
-    workbook, worksheet = open_workbook_worksheet('me_s80.xlsx', '8 Strategy Planner')
+    workbook, worksheet = open_workbook_worksheet(excel_path, '8 Strategy Planner')
     
     write_to_excel(qualify_1, 8, actual_gp, worksheet, 17, 18, True)
     
@@ -362,9 +368,8 @@ def fill_gp_info(br, actual_gp):
     write_to_excel(race, 2, actual_gp, worksheet, 17, 18, True)
     
     # Load the workbook
-    save_workbook(workbook, 'me_s80.xlsx')
-    
-    pass
+    save_workbook(workbook, excel_path)
+
 
 def main():
     
@@ -372,21 +377,23 @@ def main():
     login_form = LoginForm(root)
     root.mainloop()
     
+    excel_path = login_form.file_path
+    
     #check if the login is good
     if not check_login(login_form.username, login_form.password):
         sys.exit()
     
     browser = browser_open(login_form.username, login_form.password)
     
-    gp_list, actual_gp = fill_season_calendar()
+    gp_list, actual_gp = fill_season_calendar(excel_path)
     
-    fill_driver_profile(browser, gp_list , actual_gp)
+    fill_driver_profile(browser, gp_list , actual_gp, excel_path)
 
-    fill_staff_facilities(browser, gp_list, actual_gp)
+    fill_staff_facilities(browser, gp_list, actual_gp, excel_path)
 
-    fill_car_level(browser, gp_list, actual_gp)
+    fill_car_level(browser, gp_list, actual_gp, excel_path)
     
-    fill_gp_info(browser, actual_gp)
+    fill_gp_info(browser, actual_gp, excel_path)
     
 if __name__ == '__main__':
     main()
