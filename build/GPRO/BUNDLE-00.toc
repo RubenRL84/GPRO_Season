@@ -1,0 +1,3 @@
+([('GPRO',
+   '/Users/rubenlacerda/Projects/Python/GPRO_Season/dist/GPRO',
+   'EXECUTABLE')],)
