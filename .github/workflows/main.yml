@@ -1,43 +1,47 @@
-name: Build and Package Mac App
+name: Build macOS App
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: macos-latest
-
+    runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.11
+        architecture: x64
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller
 
-    - name: Build Mac App
+    - name: Build App
       run: |
-        pyinstaller --onefile --windowed GPRO.py
-
-    - name: Create App Directory
-      run: |
-        mkdir -p MyApp.app/Contents/MacOS
-        mkdir -p MyApp.app/Contents/Frameworks
-        mkdir -p MyApp.app/Contents/Resources
-
-    - name: Package App
-      run: |
-        cp dist/MyApp MyApp.app/Contents/MacOS/
+        pyinstaller --name GPRO --windowed GPRO.py
+        rm -rf dist/GPRO.app
+        pyinstaller --name GPRO --windowed GPRO.py
+        rm -rf MyApp.app/Contents/Frameworks/Tk.framework/Versions/8.6/Resources/Scripts/tk.tcl
+        cp tk.tcl MyApp.app/Contents/Frameworks/Tk.framework/Versions/8.6/Resources/Scripts/
         cp -r /Library/Frameworks/Tk.framework /Library/Frameworks/Tcl.framework MyApp.app/Contents/Frameworks/
         cp MyApp.icns MyApp.app/Contents/Resources/
         echo "APPL????" > MyApp.app/Contents/PkgInfo
+        rm dist/MyApp
+        cp -r dist/GPRO.app MyApp.app/Contents/MacOS/
 
-    - name: Create DMG
+    - name: Zip App
       run: |
-        hdiutil create -volname MyApp -srcfolder MyApp.app -ov -format UDZO MyApp.dmg
+        zip -r GPRO.app.zip MyApp.app
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: GPRO-macOS
+        path: GPRO.app.zip
