@@ -1,38 +1,48 @@
-name: Build macOS app
-
 on:
   push:
     branches:
-      - main
+    - main
+    - release/*
 
 jobs:
   build:
-    runs-on: macOS-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+          # - macos-latest
+          # - ubuntu-latest
       
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v3
 
-      - name: Remove old build files
-        run: rm -rf dist/*
-
-      - name: Build macOS app
-        run: pyinstaller --name=GPRO --windowed --onefile --add-data='assets:assets' GPRO.py
-        working-directory: ${{ github.workspace }}/src
-
-      - name: Create DMG
-        run: |
-          hdiutil create -srcfolder dist/GPRO.app -volname "GPRO" -fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW -size 100m GPRO.dmg
-          hdiutil convert GPRO.dmg -format UDZO -imagekey zlib-level=9 -o GPRO-macOS.dmg
-        working-directory: ${{ github.workspace }}/dist
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          name: GPRO-macOS
+          python-version: '3.10' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+          cache: 'pip'
+          cache-dependency-path: |
+            **/requirements*.txt
+            
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          
+      - name: Python GUI With Tkinter
+        uses: Nuitka/Nuitka-Action@v0.4
+        with:
+          script-name: GPRO.py
+          enable-plugins: tk-inter
+  
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ runner.os }} Build
           path: |
-            GPRO-macOS.dmg
+            build/*.exe
+            build/*.bin
+            build/*.app/**/*
