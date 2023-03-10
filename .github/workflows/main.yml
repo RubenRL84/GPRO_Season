@@ -1,4 +1,4 @@
-name: Build macOS App
+name: Build macOS app
 
 on:
   push:
@@ -7,41 +7,32 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macOS-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.11
-        architecture: x64
+      - name: Remove old build files
+        run: rm -rf dist/*
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
+      - name: Build macOS app
+        run: pyinstaller --name=GPRO --windowed --onefile --add-data='assets:assets' GPRO.py
+        working-directory: ${{ github.workspace }}/src
 
-    - name: Build App
-      run: |
-        pyinstaller --name GPRO --windowed GPRO.py
-        rm -rf dist/GPRO.app
-        pyinstaller --name GPRO --windowed GPRO.py
-        rm -rf MyApp.app/Contents/Frameworks/Tk.framework/Versions/8.6/Resources/Scripts/tk.tcl
-        cp tk.tcl MyApp.app/Contents/Frameworks/Tk.framework/Versions/8.6/Resources/Scripts/
-        cp -r /Library/Frameworks/Tk.framework /Library/Frameworks/Tcl.framework MyApp.app/Contents/Frameworks/
-        cp MyApp.icns MyApp.app/Contents/Resources/
-        echo "APPL????" > MyApp.app/Contents/PkgInfo
-        rm dist/MyApp
-        cp -r dist/GPRO.app MyApp.app/Contents/MacOS/
+      - name: Create DMG
+        run: |
+          hdiutil create -srcfolder dist/GPRO.app -volname "GPRO" -fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW -size 100m GPRO.dmg
+          hdiutil convert GPRO.dmg -format UDZO -imagekey zlib-level=9 -o GPRO-macOS.dmg
+        working-directory: ${{ github.workspace }}/dist
 
-    - name: Zip App
-      run: |
-        zip -r GPRO.app.zip MyApp.app
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: GPRO-macOS
-        path: GPRO.app.zip
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: GPRO-macOS
+          path: |
+            GPRO-macOS.dmg
