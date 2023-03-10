@@ -1,45 +1,43 @@
+name: Build and Package Mac App
+
 on:
   push:
-    branches:
-    - main
-    - release/*
+    branches: [main]
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-      
-    runs-on: ${{ matrix.os }}
-    
-    steps:
-      - name: Check-out repository
-        uses: actions/checkout@v3
+    runs-on: macos-latest
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10' # Version range or exact version of a Python version to use, using SemVer's version range syntax
-          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
-          cache: 'pip'
-          cache-dependency-path: |
-            **/requirements*.txt
-            
-      - name: Install Dependencies
-        run: |
-          pip install -r requirements.txt
-          
-      - name: Build Executable
-        uses: Nuitka/Nuitka-Action@v0.4
-        with:
-          script-name: kasa_cli
-          onefile: true
-  
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ runner.os }} Build
-          path: |
-            build/*.exe
-            build/*.bin
-            build/*.app/**/*
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+
+    - name: Build Mac App
+      run: |
+        pyinstaller --onefile --windowed GPRO.py
+
+    - name: Create App Directory
+      run: |
+        mkdir -p MyApp.app/Contents/MacOS
+        mkdir -p MyApp.app/Contents/Frameworks
+        mkdir -p MyApp.app/Contents/Resources
+
+    - name: Package App
+      run: |
+        cp dist/MyApp MyApp.app/Contents/MacOS/
+        cp -r /Library/Frameworks/Tk.framework /Library/Frameworks/Tcl.framework MyApp.app/Contents/Frameworks/
+        cp MyApp.icns MyApp.app/Contents/Resources/
+        echo "APPL????" > MyApp.app/Contents/PkgInfo
+
+    - name: Create DMG
+      run: |
+        hdiutil create -volname MyApp -srcfolder MyApp.app -ov -format UDZO MyApp.dmg
